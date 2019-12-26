@@ -83,7 +83,7 @@
             return {
                 show: false,
                 columns: [],
-                pickerItemHeight: 68 * screen.width / 750,
+                pickerItemHeight: Math.floor(68 * screen.width / 750),
                 startScrollTop: 0,
                 lastPickedIndex: 0,
                 scrollingColumnIndex: 0,
@@ -169,13 +169,21 @@
                 }
             },
             setColumn(columnIndex, pickerList) {
-                if (!pickerList) {
+                if (columnIndex === 5 || (this.columnNum > 0 && columnIndex >= this.columnNum)) {
+                    // limit max 5 columns
+                    return
+                }
+                pickerList = pickerList || []
+                let columnPickerList = pickerList
+                if (this.beforeSetColumn) {
+                    columnPickerList = this.beforeSetColumn(columnIndex, columnPickerList)
+                }
+                if (columnPickerList.length < 1) {
                     if (this.columnNum === 0) {
                         this.$delete(this.columns, columnIndex)
                         this.clearChildrenColumns(columnIndex, true)
                         return
                     } else if (columnIndex < this.columnNum) {
-                        pickerList = []
                         this.clearChildrenColumns(columnIndex)
                     } else {
                         return
@@ -185,11 +193,11 @@
                 let currentColumn = this.columns[columnIndex] || {}
                 let column = {
                     index: columnIndex,
+                    pickerList: columnPickerList,
                     pickedIndex: 0,
                 }
-                column.pickerList = this.beforeSetColumn ? this.beforeSetColumn(pickerList) : pickerList
                 column.pickedIndex = Math.min(currentColumn.pickedIndex, column.pickerList.length - 1) || 0 // 使得下级column的index维持在当前选择位置
-                let defaultValue = this.defaultValue[columnIndex] || false
+                let defaultValue = (this.defaultValue && this.defaultValue[columnIndex]) || false
                 if (currentColumn.pickedIndex === undefined && defaultValue !== false) {
                     column.pickerList.map((pickerItem, index) => {
                         if (pickerItem.value == defaultValue) {
@@ -309,6 +317,7 @@
                         width: 100%;
                         position: absolute;
                         z-index: 1;
+                        transform: translateZ(0);
                         height: calc(68rpx * 3);
                         background: linear-gradient(0deg,hsla(0,0%,100%,.3),hsla(0,0%,100%,.9));
 
