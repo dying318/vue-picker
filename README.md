@@ -6,9 +6,9 @@
 | :-----:  | :-----:  | :-----:  | :-----:  |
 | pickerList  | 是 |   []     | picker数据，支持多维，使用`children`存储多维数据 |
 | defaultValue |   否   |   []   | 默认值，数组格式，和`pickerList`维数保持一致 |
-| columnNum |   否   |   0   | 指定列，不传或者为0表示根据数据动态显示列数 |
+| columnNum |   否   |   0   | 指定列，不传或者为0表示根据数据动态显示列数，最多限制5列 |
 | itemRotateDeg |   否   |   15   | 每个选项滚动角度，模拟滚轴效果 |
-| beforeSetColumn |   否   |   null   | 每次更新列之前调用方法，参数为当前列数据对应的`pickerList`, 可使用该方法对列数据动态的处理，也可以实现动态获取列数据 |
+| beforeSetColumn |   否   |   null   | 每次更新列之前调用方法，参数：`columnIndex`,`pickerList`，其中`pickerList`对应当前列数据， 可使用该方法对列数据动态的处理，也可以用于ajax动态获取列数据。注意：如果未设置`columnNum`，只有`beforeSetColumn`返回空值或者超出5列才会停止渲染新的列 |
 | customStyle |   否   |   {}   | 目前可以自定义按钮样式，列样式，参数格式见: `customStyle` |
 | @confirm |   否   |   null   | 点击确定后触发，参数：`picked` |
 | @change |   否   |   null   | 列选项更新的时候触发，参数：`columnIndex`, `columnPicked` |
