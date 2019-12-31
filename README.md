@@ -29,66 +29,10 @@
                 value: 11,
                 children: [
                     {label: '选项111', value: 111},
-                    {label: '选项112', value: 112},
-                    {label: '选项113', value: 113},
-                    {label: '选项114', value: 114},
-                    {label: '选项115', value: 115},
                 ]
             },
-            {
-                label: '选项12',
-                value: 12,
-                children: [
-                    {label: '选项121', value: 121},
-                    {label: '选项122', value: 122},
-                    {label: '选项123', value: 123},
-                    {label: '选项124', value: 124},
-                    {label: '选项125', value: 125},
-                ]
-            },
-            {label: '选项13', value: 13},
-            {label: '选项14', value: 14},
-            {label: '选项15', value: 15},
         ]
     },
-    {
-        label: '选项2',
-        value: 2,
-        children: [
-            {
-                label: '选项21',
-                value: 21,
-                children: [
-                    {label: '选项211', value: 211},
-                    {label: '选项212', value: 212},
-                    {label: '选项213', value: 213},
-                    {label: '选项214', value: 214},
-                    {label: '选项215', value: 215},
-                ]
-            },
-            {
-                label: '选项22',
-                value: 22,
-                children: [
-                    {label: '选项221', value: 221},
-                    {label: '选项222', value: 222},
-                    {label: '选项223', value: 223},
-                    {label: '选项224', value: 224},
-                    {label: '选项225', value: 225},
-                ]
-            },
-            {label: '选项23', value: 23},
-            {label: '选项24', value: 24},
-            {label: '选项25', value: 25},
-        ]
-    },
-    {label: '选项3', value: 3},
-    {label: '选项4', value: 4},
-    {label: '选项5', value: 5},
-    {label: '选项6', value: 6},
-    {label: '选项7', value: 7},
-    {label: '选项8', value: 8},
-    {label: '选项9', value: 9},
 ]
 
 // 非联动多列
@@ -97,23 +41,11 @@
         {label: '选项1', value: 1},
         {label: '选项2', value: 2},
         {label: '选项3', value: 3},
-        {label: '选项4', value: 4},
-        {label: '选项5', value: 5},
-        {label: '选项6', value: 6},
-        {label: '选项7', value: 7},
-        {label: '选项8', value: 8},
-        {label: '选项9', value: 9},
     ],
     [
         {label: '选项1', value: 1},
         {label: '选项2', value: 2},
         {label: '选项3', value: 3},
-        {label: '选项4', value: 4},
-        {label: '选项5', value: 5},
-        {label: '选项6', value: 6},
-        {label: '选项7', value: 7},
-        {label: '选项8', value: 8},
-        {label: '选项9', value: 9},
     ],
 ]
 
@@ -161,23 +93,23 @@
 ## Demo：
 引入picker不要uni-app自带picker冲突，例：MyPicker.
 
-#### 单列
+#### 单列：
 ```
-<my-picker :picker-list="singleColumnPickerList" @confirm="confirm('singleColumn', $event)">
+<my-picker :picker-list="" @confirm="confirm">
 </my-picker>
 ```
 
-#### 3列联动
+#### 固定多列：
 ```
 <my-picker
-    :picker-list=""
     column-num="3"
+    :picker-list=""
     @change="change"
     @confirm="confirm">
 </my-picker>
 ```
 
-#### 完整参数演示
+#### 完整参数演示：
 ```
 <my-picker
     column-num="3"
@@ -192,7 +124,7 @@
 </my-picker>
 ```
 
-#### 非固定列联动
+#### 非固定列：
 ```
 <my-picker
     :picker-list=""
