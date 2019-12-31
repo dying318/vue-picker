@@ -7,20 +7,20 @@
             <div class="picker-mask" @click="cancel" v-show="show"></div>
             <div class="picker-panel" :class="{'picker-panel-translate': show}">
                 <div class="picker-action">
-                    <p class="cancel" @click="cancel" :style="customStyle.cancel">取消</p>
-                    <p class="confirm" @click="confirm" :style="customStyle.confirm">确定</p>
+                    <p class="cancel" @click="cancel" :style="pickerStyle.cancel">取消</p>
+                    <p class="confirm" @click="confirm" :style="pickerStyle.confirm">确定</p>
                 </div>
                 <div class="picker-content">
-                    <div v-for="(column, columnIndex) in columns" class="picker-column" :style="customStyle.column[columnIndex]"
+                    <div v-for="(column, columnIndex) in columns" class="picker-column" :style="pickerStyle.column[columnIndex]"
                          :data-column="columnIndex"
                          @touchstart="touchstart" @touchmove="touchmove">
                         <div class="scroll-wrapper">
                             <div class="top-cover"></div>
                             <div class="bottom-cover"></div>
                             <view class="scroll-list" :animation="column.animationData">
-                                <div v-for="(data, itemIndex) in column.pickerList" :key="data.value" >
+                                <div v-for="(data, itemIndex) in column.pickerList" >
                                     <div class="picker-item" :style="pickerItemStyle(column.pickedIndex, itemIndex)">
-                                        {{data.label}}
+                                        {{data[pickerKey.label]}}
                                     </div>
                                 </div>
                             </view>
@@ -42,6 +42,29 @@
                     return []
                 }
             },
+            pickerKey: {
+                value: Object,
+                default() {
+                    return {
+                        value: 'value',
+                        label: 'label',
+                        children: 'children'
+                    }
+                }
+            },
+            pickerStyle: {
+                value: Object,
+                default() {
+                    return {
+                        cancel: {
+                        },
+                        confirm: {
+                        },
+                        column: [
+                        ]
+                    }
+                }
+            },
             defaultValue: {
                 value: Array,
                 default() {
@@ -60,28 +83,11 @@
                 value: Function,
                 default: null
             },
-            customStyle: {
-                value: Object,
-                default() {
-                    return {
-                        cancel: {
-                            color: '#999',
-                        },
-                        confirm: {
-                            color: '#1CABEB',
-                        },
-                        column: [
-                            {flex: 1},
-                            {flex: 1},
-                            {flex: 3},
-                        ]
-                    }
-                }
-            },
         },
         data() {
             return {
                 show: false,
+                reactModel: true,
                 columns: [],
                 pickerItemHeight: Math.floor(68 * screen.width / 750),
                 startScrollTop: 0,
@@ -90,15 +96,26 @@
             }
         },
         watch: {
+            pickerList() {
+                this.init()
+            },
             defaultValue() {
                 this.init()
-            }
+            },
         },
         mounted() {
         },
         methods: {
             init() {
-                this.setColumn(0, this.pickerList)
+                if (Array.isArray(this.pickerList[0])) {
+                    this.pickerList.forEach((pickerList, index) => {
+                        this.setColumn(index, pickerList)
+                    })
+                    this.reactModel = false;
+                } else {
+                    this.setColumn(0, this.pickerList)
+                }
+
             },
             showPicker() {
                 this.init()
@@ -147,8 +164,8 @@
                 }
                 return {
                     index: column.pickedIndex,
-                    value: column.pickerList[column.pickedIndex].value,
-                    label: column.pickerList[column.pickedIndex].label,
+                    value: column.pickerList[column.pickedIndex][this.pickerKey.value],
+                    label: column.pickerList[column.pickedIndex][this.pickerKey.label],
                 }
             },
             touchstart(e) {
@@ -180,11 +197,10 @@
                 }
                 if (columnPickerList.length < 1) {
                     if (this.columnNum === 0) {
-                        this.$delete(this.columns, columnIndex)
-                        this.clearChildrenColumns(columnIndex, true)
+                        this.clearColumns(columnIndex)
                         return
                     } else if (columnIndex < this.columnNum) {
-                        this.clearChildrenColumns(columnIndex)
+                        this.setColumn(columnIndex + 1, [])
                     } else {
                         return
                     }
@@ -200,7 +216,7 @@
                 let defaultValue = (this.defaultValue && this.defaultValue[columnIndex]) || false
                 if (currentColumn.pickedIndex === undefined && defaultValue !== false) {
                     column.pickerList.map((pickerItem, index) => {
-                        if (pickerItem.value == defaultValue) {
+                        if (pickerItem[this.pickerKey.value] == defaultValue) {
                             column.pickedIndex = index
                         }
                     })
@@ -210,26 +226,20 @@
                 this.$set(this.columns, columnIndex, column)
             },
             scrollColumn(column) {
-                this.setColumn(column.index + 1, column.pickerList[column.pickedIndex].children)
-
                 let translateY = column.pickedIndex * this.pickerItemHeight
                 column.animationData = uni.createAnimation({
                     duration: 200,
                     timingFunction: 'linear',
                 }).translateY(-translateY).step().export()
-            },
-            clearChildrenColumns(columnIndex, isRemove = false) {
-                if (isRemove) {
-                    this.columns.filter(column => {
-                        return column.index < columnIndex
-                    })
-                } else {
-                    this.columns.map(column => {
-                        if (column.index > columnIndex) {
-                            this.setColumn(column.index, [])
-                        }
-                    })
+
+                if (this.reactModel && column.pickerList[column.pickedIndex]) {
+                    this.setColumn(column.index + 1, column.pickerList[column.pickedIndex][this.pickerKey.children])
                 }
+            },
+            clearColumns(columnIndex) {
+                this.columns = this.columns.filter(column => {
+                    return column.index < columnIndex
+                })
             },
             pickerItemStyle(pickedIndex, itemIndex) {
                 let distance = Math.abs(pickedIndex - itemIndex)
@@ -288,12 +298,11 @@
                 p {
                     color: #999;
                     padding: 30rpx;
-                    line-height: 32rpx;
-                    height: 32rpx;
-                    font-size: 32rpx;
+                    line-height: 1;
+                    font-size: 36rpx;
                 }
                 .confirm {
-                    color: #1CABEB;
+                    color: #007aff;
                 }
             }
 
