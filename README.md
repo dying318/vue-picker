@@ -160,6 +160,47 @@
 
 ## Demo：
 引入picker不要uni-app自带picker冲突，例：MyPicker.
+
+#### 单列
+```
+<my-picker :picker-list="singleColumnPickerList" @confirm="confirm('singleColumn', $event)">
+</my-picker>
+```
+
+#### 3列联动
+```
+<my-picker
+    :picker-list=""
+    column-num="3"
+    @change="change"
+    @confirm="confirm">
+</my-picker>
+```
+
+#### 完整参数演示
+```
+<my-picker
+    column-num="3"
+    :picker-list=""
+    :picker-style=""
+    :picker-key="{value: 'id', label: 'title', children: 'sub'}"
+    :before-set-column="addPickerItem"
+    :default-value="[2,21,212]"
+    :item-rotate-deg="20"
+    @change="change"
+    @confirm="confirm">
+</my-picker>
+```
+
+#### 非固定列联动
+```
+<my-picker
+    :picker-list=""
+    @confirm="confirm">
+</my-picker>
+```
+
+#### 完整Demo
 ```
 <template>
     <view class="container">
