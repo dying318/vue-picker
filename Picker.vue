@@ -103,6 +103,20 @@
                 this.init()
             },
         },
+        computed: {
+            pickerItemStyle() {
+                return function(pickedIndex, itemIndex) {
+                    let distance = Math.abs(pickedIndex - itemIndex)
+                    if (distance <= 3) {
+                        return {
+                            transform: 'rotateX(' + distance * this.itemRotateDeg + 'deg)'
+                        }
+                    } else {
+                        return {}
+                    }
+                }
+            }
+        },
         mounted() {
         },
         methods: {
@@ -241,16 +255,6 @@
                     return column.index < columnIndex
                 })
             },
-            pickerItemStyle(pickedIndex, itemIndex) {
-                let distance = Math.abs(pickedIndex - itemIndex)
-                if (distance <= 3) {
-                    return {
-                        transform: 'rotateX(' + distance * this.itemRotateDeg + 'deg)'
-                    }
-                } else {
-                    return {}
-                }
-            }
         },
     };
 </script>
