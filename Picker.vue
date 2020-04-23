@@ -1,25 +1,29 @@
 <template>
     <div>
-        <div @click="showPicker">
+        <div @click.prevent.stop="showPicker">
             <slot></slot>
         </div>
-        <div ref="picker" class="picker-pop" @touchmove.prevent>
-            <div class="picker-mask" @click="cancel" v-show="show"></div>
+        <div ref="picker" class="picker-pop" v-show="show" @touchmove.prevent.stop>
+            <div class="picker-mask" @click="cancel"></div>
             <div class="picker-panel" :class="{'picker-panel-translate': show}">
                 <div class="picker-action">
                     <p class="cancel" @click="cancel" :style="pickerStyle.cancel">取消</p>
                     <p class="confirm" @click="confirm" :style="pickerStyle.confirm">确定</p>
                 </div>
                 <div class="picker-content">
-                    <div v-for="(column, columnIndex) in columns" class="picker-column" :style="pickerStyle.column[columnIndex]"
-                         :data-column="columnIndex"
-                         @touchstart="touchstart" @touchmove="touchmove">
+                    <div class="picker-column" v-for="(column, columnIndex) in columns" :key="columnIndex"
+                         :style="pickerStyle.column[columnIndex]" :data-column="columnIndex"
+                         @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
                         <div class="scroll-wrapper">
                             <div class="top-cover"></div>
                             <div class="bottom-cover"></div>
                             <view class="scroll-list" :animation="column.animationData">
-                                <div v-for="(data, itemIndex) in column.pickerList" >
-                                    <div class="picker-item" :style="pickerItemStyle(column.pickedIndex, itemIndex)">
+                                <div v-for="(data, itemIndex) in column.pickerList" :key="itemIndex" >
+                                    <div class="picker-item"
+                                        <!-- #ifdef H5-->
+                                        :style="pickerItemStyle(column.pickedIndex, itemIndex)"
+                                        <!-- #endif-->
+                                        >
                                         {{data[pickerKey.label]}}
                                     </div>
                                 </div>
@@ -56,12 +60,9 @@
                 value: Object,
                 default() {
                     return {
-                        cancel: {
-                        },
-                        confirm: {
-                        },
-                        column: [
-                        ]
+                        cancel: {},
+                        confirm: {},
+                        column: []
                     }
                 }
             },
@@ -83,16 +84,21 @@
                 value: Function,
                 default: null
             },
+            speedUpRatio: {
+                value: Number,
+                default: 1
+            },
         },
         data() {
             return {
                 show: false,
                 reactModel: true,
                 columns: [],
-                pickerItemHeight: Math.floor(68 * screen.width / 750),
+                pickerItemHeight: Math.floor(68 * uni.getSystemInfoSync().windowWidth / 750),
                 startScrollTop: 0,
-                lastPickedIndex: 0,
+                startPickedIndex: 0,
                 scrollingColumnIndex: 0,
+                scrollEventQueue: [],
             }
         },
         watch: {
@@ -136,13 +142,16 @@
                 if (this.inited) {
                     this.show = true
                 } else {
+                    // #ifdef H5
                     let $picker = this.$refs.picker
                     document.body.appendChild($picker)
+                    // #endif
                     setTimeout(() => {
                         this.show = true
                     }, 20)
                     this.inited = true
                 }
+                this.$emit('click') // 传递click事件
             },
             confirm() {
                 let picked = {index: [], value: [], label: [], indexes: [],values: [], labels: []}
@@ -185,35 +194,47 @@
             touchstart(e) {
                 this.scrollingColumnIndex = e.currentTarget.dataset.column
                 this.startScrollTop = e.changedTouches[0].clientY
-                this.lastPickedIndex = this.columns[this.scrollingColumnIndex].pickedIndex
+                this.startPickedIndex = this.columns[this.scrollingColumnIndex].pickedIndex
+
+                this.scrollEventQueue = [{
+                    index: this.startPickedIndex,
+                    time: +new Date()
+                }]
             },
             touchmove(e) {
                 let scrollDistance = this.startScrollTop - e.changedTouches[0].clientY
                 let scrollIndex = Math.round(scrollDistance/this.pickerItemHeight)
-                let tempPickerIndex = this.lastPickedIndex + scrollIndex
                 let column = this.columns[this.scrollingColumnIndex]
-                if (column.pickedIndex !== tempPickerIndex
-                    && tempPickerIndex >= 0 && tempPickerIndex < column.pickerList.length) {
-                    column.pickedIndex = tempPickerIndex
-                    this.$emit('change', column.index, this.columnPickedInfo(column))
-                    this.scrollColumn(column)
+                let currentPickedIndex = column.pickedIndex
+                this.setColumnIndex(column, this.startPickedIndex + scrollIndex)
+                if (column.pickedIndex !== currentPickedIndex) {
+                    this.scrollColumn(column, true)
                 }
+            },
+            touchend(e) {
+                let column = this.columns[this.scrollingColumnIndex]
+                console.log('touchend')
+                this.scrollColumn(column, false, true)
             },
             setColumn(columnIndex, pickerList) {
                 if (columnIndex === 5 || (this.columnNum > 0 && columnIndex >= this.columnNum)) {
                     // limit max 5 columns
                     return
                 }
-                pickerList = pickerList || []
-                let columnPickerList = pickerList
+                let columnPickerList = pickerList || []
                 if (this.beforeSetColumn) {
+                    // 在开始渲染列之前使用钩子动态修改pickerList，注意避免对pickerList修改以保证渲染不污染源数据
                     columnPickerList = this.beforeSetColumn(columnIndex, columnPickerList)
                 }
                 if (columnPickerList.length < 1) {
                     if (this.columnNum === 0) {
-                        this.clearColumns(columnIndex)
+                        // 动态列数，当前列为空，清除后面全部列
+                        this.columns = this.columns.filter(column => {
+                            return column.index < columnIndex
+                        })
                         return
                     } else if (columnIndex < this.columnNum) {
+                        // 固定列数，清除下一列，递归清除后面全部列
                         this.setColumn(columnIndex + 1, [])
                     } else {
                         return
@@ -226,8 +247,8 @@
                     pickerList: columnPickerList,
                     pickedIndex: 0,
                 }
-                column.pickedIndex = Math.min(currentColumn.pickedIndex, column.pickerList.length - 1) || 0 // 使得下级column的index维持在当前选择位置
-                let defaultValue = (this.defaultValue && this.defaultValue[columnIndex]) || false
+                this.setColumnIndex(column, currentColumn.pickedIndex || 0) // 使得column的index维持在当前选择位置
+                let defaultValue = this.defaultValue && this.defaultValue[columnIndex] !== false ? this.defaultValue[columnIndex] : false
                 if (currentColumn.pickedIndex === undefined && defaultValue !== false) {
                     column.pickerList.map((pickerItem, index) => {
                         if (pickerItem[this.pickerKey.value] == defaultValue) {
@@ -239,7 +260,33 @@
                 this.scrollColumn(column)
                 this.$set(this.columns, columnIndex, column)
             },
-            scrollColumn(column) {
+            setColumnIndex(column, index) {
+                index = index < 0 ? 0 : index
+                column.pickedIndex = Math.min(index, column.pickerList.length - 1)
+            },
+            scrollColumn(column, needThrottle = false, needSpeedUp = false) {
+                let now = +new Date()
+                let lastScrollEvent = this.scrollEventQueue[this.scrollEventQueue.length-1]
+                if (needThrottle && lastScrollEvent.time && now < (lastScrollEvent.time + 100)) {
+                    return
+                }
+                let speedUpIndex = 0
+                if (needSpeedUp && this.speedUpRatio) {
+                    // 模拟惯性效果，在touch事件接触后，根据最后两次滚动事件的速度生成滑动的距离。在touch过程中，保持触摸距离和滚动距离的一致
+                    if (this.scrollEventQueue.length > 1) {
+                        lastScrollEvent = this.scrollEventQueue[this.scrollEventQueue.length-2]
+                    }
+                    let speed = (column.pickedIndex - lastScrollEvent.index) / (now - lastScrollEvent.time)
+                    speedUpIndex = Math.floor(Math.pow(speed, 2) * 800 * this.speedUpRatio) // 使用二次方曲线放大加速效果，其中效果800为默认调试参数
+                    speedUpIndex = speed > 0 ? speedUpIndex : -speedUpIndex;
+                    this.setColumnIndex(column, column.pickedIndex + speedUpIndex)
+                }
+
+                this.scrollEventQueue.push({
+                    index: column.pickedIndex,
+                    time: now
+                })
+
                 let translateY = column.pickedIndex * this.pickerItemHeight
                 column.animationData = uni.createAnimation({
                     duration: 200,
@@ -249,12 +296,9 @@
                 if (this.reactModel && column.pickerList[column.pickedIndex]) {
                     this.setColumn(column.index + 1, column.pickerList[column.pickedIndex][this.pickerKey.children])
                 }
-            },
-            clearColumns(columnIndex) {
-                this.columns = this.columns.filter(column => {
-                    return column.index < columnIndex
-                })
-            },
+
+                this.$emit('change', column.index, this.columnPickedInfo(column))
+            }
         },
     };
 </script>
