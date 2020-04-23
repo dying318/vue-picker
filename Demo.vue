@@ -11,7 +11,7 @@
         <my-picker
             :picker-list="multiColumnsPickerList"
             column-num="3"
-            @change="change('multiColumns', ...arguments)"
+            @change="changeMultiColumns"
             @confirm="confirm('multiColumns', $event)">
             <button class="button" type="primary">3列联动</button>
         </my-picker>
@@ -32,7 +32,7 @@
             :before-set-column="addPickerItem"
             :default-value="[2,21,212]"
             :item-rotate-deg="20"
-            @change="change('customMultiColumns', ...arguments)"
+            @change="changeCustomMultiColumns"
             @confirm="confirm('customMultiColumns', $event)">
             <button class="button" type="primary">完整自定义参数联动</button>
         </my-picker>
@@ -296,12 +296,16 @@
             confirm(type, picked) {
                 this.demos[type].picked = picked
             },
-            change(type, index, picked) {
-                this.demos[type].columnPickedIndex = index
-                this.demos[type].columnPicked = picked
+            changeMultiColumns(index, picked) {
+                this.demos.multiColumns.columnPickedIndex = index
+                this.demos.multiColumns.columnPicked = picked
+            },
+            changeCustomMultiColumns(index, picked) {
+                this.demos.customMultiColumns.columnPickedIndex = index
+                this.demos.customMultiColumns.columnPicked = picked
             },
             addPickerItem(index, pickerList) {
-                if (index === 2 && pickerList.length > 0) {
+                if (pickerList.length > 0) {
                     pickerList = [{title: '全部', id: 0}].concat(pickerList)
                 }
 
