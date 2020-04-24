@@ -98,7 +98,6 @@
                 startScrollTop: 0,
                 startPickedIndex: 0,
                 scrollingColumnIndex: 0,
-                scrollEventQueue: [],
             }
         },
         watch: {
@@ -196,7 +195,7 @@
                 this.startScrollTop = e.changedTouches[0].clientY
                 this.startPickedIndex = this.columns[this.scrollingColumnIndex].pickedIndex
 
-                this.scrollEventQueue = [{
+                this.columns[this.scrollingColumnIndex].scrollEventQueue = [{
                     index: this.startPickedIndex,
                     time: +new Date()
                 }]
@@ -213,7 +212,6 @@
             },
             touchend(e) {
                 let column = this.columns[this.scrollingColumnIndex]
-                console.log('touchend')
                 this.scrollColumn(column, false, true)
             },
             setColumn(columnIndex, pickerList) {
@@ -244,6 +242,7 @@
                 let currentColumn = this.columns[columnIndex] || {}
                 let column = {
                     index: columnIndex,
+                    scrollEventQueue: [],
                     pickerList: columnPickerList,
                     pickedIndex: 0,
                 }
@@ -266,15 +265,15 @@
             },
             scrollColumn(column, needThrottle = false, needSpeedUp = false) {
                 let now = +new Date()
-                let lastScrollEvent = this.scrollEventQueue[this.scrollEventQueue.length-1]
+                let lastScrollEvent = column.scrollEventQueue[column.scrollEventQueue.length-1]
                 if (needThrottle && lastScrollEvent.time && now < (lastScrollEvent.time + 100)) {
                     return
                 }
                 let speedUpIndex = 0
                 if (needSpeedUp && this.speedUpRatio) {
                     // 模拟惯性效果，在touch事件接触后，根据最后两次滚动事件的速度生成滑动的距离。在touch过程中，保持触摸距离和滚动距离的一致
-                    if (this.scrollEventQueue.length > 1) {
-                        lastScrollEvent = this.scrollEventQueue[this.scrollEventQueue.length-2]
+                    if (column.scrollEventQueue.length > 1) {
+                        lastScrollEvent = column.scrollEventQueue[column.scrollEventQueue.length-2]
                     }
                     let speed = (column.pickedIndex - lastScrollEvent.index) / (now - lastScrollEvent.time)
                     speedUpIndex = Math.floor(Math.pow(speed, 2) * 800 * this.speedUpRatio) // 使用二次方曲线放大加速效果，其中效果800为默认调试参数
@@ -282,7 +281,7 @@
                     this.setColumnIndex(column, column.pickedIndex + speedUpIndex)
                 }
 
-                this.scrollEventQueue.push({
+                column.scrollEventQueue.push({
                     index: column.pickedIndex,
                     time: now
                 })
