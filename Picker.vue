@@ -143,7 +143,7 @@
                 } else {
                     // #ifdef H5
                     let $picker = this.$refs.picker
-                    document.body.appendChild($picker)
+                    document.getElementsByTagName('uni-page')[0].appendChild($picker)
                     // #endif
                     setTimeout(() => {
                         this.show = true
